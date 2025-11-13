@@ -51,8 +51,8 @@ if (!gmailUser || !gmailPass) {
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 465,
-  secure: true,
+  port: 587,
+  secure: false,
   auth: { user: gmailUser, pass: gmailPass },
 });
 
@@ -75,7 +75,7 @@ app.post('/sendOtp', async (req, res) => {
     if (snap.exists) {
       const data = snap.data();
       const createdAt = data?.createdAt;
-      if (createdAt && now.toMillis() - createdAt.toMillis() < 60 * 1000) {
+      if (createdAt && now.toMillis() - createdAt.toMillis() < 10 * 1000) {
         return res.status(429).json({ error: 'rate_limited' });
       }
     }
