@@ -41,19 +41,22 @@ const app = express();
 app.use(cors({ origin: true }));
 app.use(express.json());
 
-const gmailUser = process.env.GMAIL_USER;
-const gmailPass = process.env.GMAIL_PASS;
-if (!gmailUser || !gmailPass) {
-  // Do not crash; but warn
-  // eslint-disable-next-line no-console
-  console.warn('GMAIL_USER/GMAIL_PASS not set. Emails will fail.');
+const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+const smtpPort = Number(process.env.SMTP_PORT || 587);
+const smtpSecure = String(process.env.SMTP_SECURE || 'false').toLowerCase() === 'true';
+const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER;
+const smtpPass = process.env.SMTP_PASS || process.env.GMAIL_PASS;
+const smtpFrom = process.env.SMTP_FROM || (smtpUser ? `Whisp OTP <${smtpUser}>` : undefined);
+
+if (!smtpUser || !smtpPass) {
+  console.warn('SMTP_USER/SMTP_PASS not set. Emails will fail.');
 }
 
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  auth: { user: gmailUser, pass: gmailPass },
+  host: smtpHost,
+  port: smtpPort,
+  secure: smtpSecure,
+  auth: { user: smtpUser, pass: smtpPass },
 });
 
 function genOtp() {
@@ -93,7 +96,7 @@ app.post('/sendOtp', async (req, res) => {
     });
 
     await transporter.sendMail({
-      from: `Whisp OTP <${gmailUser}>`,
+      from: smtpFrom,
       to: email,
       subject: 'Tu código de verificación',
       text: `Tu código es: ${otp} (expira en 5 minutos)`,
@@ -102,9 +105,9 @@ app.post('/sendOtp', async (req, res) => {
 
     return res.json({ ok: true });
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.error(e);
-    return res.status(500).json({ error: 'send_failed' });
+    const code = e && e.code ? String(e.code) : 'send_failed';
+    return res.status(500).json({ error: code });
   }
 });
 
