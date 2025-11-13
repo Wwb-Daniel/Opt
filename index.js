@@ -107,13 +107,33 @@ app.post('/sendOtp', async (req, res) => {
       attempts: 0,
     });
 
-    await transporter.sendMail({
-      from: smtpFrom,
-      to: email,
-      subject: 'Tu código de verificación',
-      text: `Tu código es: ${otp} (expira en 5 minutos)`,
-      html: `<p>Tu código es: <b>${otp}</b></p><p>Expira en 5 minutos.</p>`,
-    });
+    if (process.env.RESEND_API_KEY) {
+      const resp = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: smtpFrom || 'Whisp <onboarding@resend.dev>',
+          to: [email],
+          subject: 'Tu código de verificación',
+          html: `<p>Tu código es: <b>${otp}</b></p><p>Expira en 5 minutos.</p>`,
+        }),
+      });
+      if (!resp.ok) {
+        const body = await resp.text();
+        throw Object.assign(new Error('resend_failed'), { code: 'RESEND_FAILED', details: body });
+      }
+    } else {
+      await transporter.sendMail({
+        from: smtpFrom,
+        to: email,
+        subject: 'Tu código de verificación',
+        text: `Tu código es: ${otp} (expira en 5 minutos)`,
+        html: `<p>Tu código es: <b>${otp}</b></p><p>Expira en 5 minutos.</p>`,
+      });
+    }
 
     return res.json({ ok: true });
   } catch (e) {
