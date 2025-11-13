@@ -53,10 +53,22 @@ if (!smtpUser || !smtpPass) {
 }
 
 const transporter = nodemailer.createTransport({
+  // Pooled SMTP for stability under free hosts
+  pool: true,
   host: smtpHost,
   port: smtpPort,
   secure: smtpSecure,
   auth: { user: smtpUser, pass: smtpPass },
+  // Timeouts to avoid hanging connections
+  connectionTimeout: 10000, // 10s
+  greetingTimeout: 10000,
+  socketTimeout: 15000,
+  // Force TLS if not secure (STARTTLS)
+  tls: {
+    rejectUnauthorized: true,
+  },
+  maxConnections: 2,
+  maxMessages: 20,
 });
 
 function genOtp() {
