@@ -1,0 +1,9 @@
+node_modules/
+.env
+secret/
+*.log
+npm-debug.log*
+yarn-error.log*
+# Nunca subas claves ni service accounts
+*.json
+!package.json
